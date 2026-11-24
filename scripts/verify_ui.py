@@ -151,10 +151,13 @@ def main() -> None:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", type=str, default=None, help="Verify a live public HTTPS URL directly")
+    parser.add_argument("--normal", type=int, default=15, help="Expected normal caliber count for --url")
+    parser.add_argument("--free", type=int, default=37, help="Expected free caliber count for --url")
+    parser.add_argument("--search", type=str, default="002086", help="Search keyword for --url")
     args = parser.parse_args()
 
     if args.url:
-        r_live = verify_url(args.url, expected_normal=4, expected_free=4, search_term="990001", label="public_https")
+        r_live = verify_url(args.url, expected_normal=args.normal, expected_free=args.free, search_term=args.search, label="public_https")
         print("LIVE PUBLIC HTTPS VERIFY OK:", r_live["checks"])
         return
 

@@ -150,9 +150,9 @@
     // Delivery badge
     const mode = m.mode || "compliance_notice";
     if (mode === "authorized_real") {
-      els.deliveryBadge.textContent = "已发布授权的真实榜单";
+      els.deliveryBadge.textContent = "真实盘后榜单 · 个人学习参考";
       els.deliveryBadge.className = "badge badge-ok";
-      els.complianceModeTag.textContent = "已授权公开发布";
+      els.complianceModeTag.textContent = "真实数据 · 仅限个人学习参考";
       els.complianceModeTag.className = "badge badge-ok";
     } else if (mode === "private_verified_real") {
       els.deliveryBadge.textContent = "私人环境真实验算模式";

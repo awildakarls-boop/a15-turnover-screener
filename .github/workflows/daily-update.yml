@@ -50,10 +50,12 @@ jobs:
       - name: Run isolated acceptance tests
         run: pytest -v
 
-      - name: Restore resumable SQLite cache
+      - name: Restore resumable SQLite & historical snapshots cache
         uses: actions/cache@v4
         with:
-          path: data/state.db
+          path: |
+            data/state.db
+            data/private/days
           key: a15-state-db-${{ github.run_id }}
           restore-keys: |
             a15-state-db-
