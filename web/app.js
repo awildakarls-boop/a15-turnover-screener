@@ -103,7 +103,9 @@
   }
 
   async function fetchJson(url) {
-    const resp = await fetch(url, { cache: "no-store" });
+    const sep = url.includes("?") ? "&" : "?";
+    const bustUrl = `${url}${sep}_t=${Date.now()}`;
+    const resp = await fetch(bustUrl, { cache: "no-store" });
     if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
     return resp.json();
   }
