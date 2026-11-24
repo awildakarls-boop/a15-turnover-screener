@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A 股开盘 15 分钟换手率筛选站</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand-block">
+        <div class="brand-title-row">
+          <h1>A 股开盘 15 分钟换手率筛选站</h1>
+          <span id="deliveryBadge" class="badge badge-neutral">加载中...</span>
+        </div>
+        <p class="subtitle">
+          09:30–09:45 连续竞价（扣除开盘集合竞价） · 全精度换手率 ≥ 10% · 沪深主板 / 创业板 / 科创板 / 北交所 · 北京时间盘后只读快照
+        </p>
+      </div>
+      <div class="header-meta" id="headerMeta">
+        <div><span class="meta-label">目标交易日 (D)</span><strong id="metaTargetDate">--</strong></div>
+        <div><span class="meta-label">扫描状态</span><strong id="metaScanStatus">--</strong></div>
+        <div><span class="meta-label">最后成功更新</span><strong id="metaUpdatedAt">--</strong></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <section id="statusBanner" class="banner hidden" role="status"></section>
+
+    <section class="card summary-panel">
+      <div class="summary-top">
+        <div class="caliber-switch" role="tablist" aria-label="换手率口径切换">
+          <button type="button" id="btnCaliberNormal" class="caliber-btn active" data-caliber="normal" role="tab" aria-selected="true">
+            <span class="caliber-name">普通换手率主榜</span>
+            <span class="caliber-sub">15m 成交股数 / 流通股本 ≥ 10%</span>
+          </button>
+          <button type="button" id="btnCaliberFree" class="caliber-btn" data-caliber="free" role="tab" aria-selected="false">
+            <span class="caliber-name">自由流通换手率榜</span>
+            <span class="caliber-sub">15m 成交股数 / 自由流通股本 ≥ 10%</span>
+          </button>
+        </div>
+
+        <div class="kpi-strip">
+          <div class="kpi-item kpi-primary">
+            <span class="kpi-label" id="kpiSelectedLabel">当前口径入选</span>
+            <strong class="kpi-value" id="kpiSelectedCount">--</strong>
+            <span class="kpi-unit">只</span>
+          </div>
+          <div class="kpi-item">
+            <span class="kpi-label">股票池总数</span>
+            <strong class="kpi-value" id="kpiPoolTotal">--</strong>
+            <span class="kpi-unit">只</span>
+          </div>
+          <div class="kpi-item">
+            <span class="kpi-label">停牌 / 无成交</span>
+            <strong class="kpi-value" id="kpiSuspended">--</strong>
+            <span class="kpi-unit">只</span>
+          </div>
+          <div class="kpi-item">
+            <span class="kpi-label">未核验缺口</span>
+            <strong class="kpi-value" id="kpiUnverified">--</strong>
+            <span class="kpi-unit">只</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="board-coverage-wrap">
+        <div class="section-mini-header">
+          <span>分板块覆盖与入选统计（<span id="coverageCaliberLabel">普通口径</span>）</span>
+          <button type="button" id="btnToggleFunnel" class="link-btn">展开完整口径漏斗对账 ▾</button>
+        </div>
+        <div id="boardCoverageGrid" class="board-grid"></div>
+      </div>
+
+      <div id="funnelPanel" class="funnel-panel hidden">
+        <div class="funnel-title-row">
+          <h3>全口径扫描漏斗对账（保证总数严格守恒）</h3>
+          <span id="funnelCheckBadge" class="badge badge-ok">守恒校验通过</span>
+        </div>
+        <div class="funnel-table-wrap">
+          <table class="mini-table" id="funnelTable">
+            <thead>
+              <tr>
+                <th>板块 / 口径</th>
+                <th class="num">应扫描数</th>
+                <th class="num">停牌数</th>
+                <th class="num">全天预筛排除</th>
+                <th class="num">分钟核验未入选</th>
+                <th class="num">已入选</th>
+                <th class="num">未知 / 未核验</th>
+                <th class="num">对账和</th>
+              </tr>
+            </thead>
+            <tbody id="funnelTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="card filter-bar">
+      <div class="filter-group">
+        <label for="selectDate">交易日期</label>
+        <select id="selectDate"></select>
+      </div>
+      <div class="filter-group">
+        <label for="selectBoard">板块</label>
+        <select id="selectBoard">
+          <option value="">全部板块</option>
+          <option value="沪市主板">沪市主板</option>
+          <option value="深市主板">深市主板</option>
+          <option value="创业板">创业板</option>
+          <option value="科创板">科创板</option>
+          <option value="北交所">北交所</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="selectIndustry">行业</label>
+        <select id="selectIndustry">
+          <option value="">全部行业</option>
+        </select>
+      </div>
+      <div class="filter-group filter-search">
+        <label for="inputSearch">搜索代码 / 名称 / 主营</label>
+        <input id="inputSearch" type="search" placeholder="如 000001、股票简称、历史代码或主营关键词..." autocomplete="off" />
+      </div>
+      <div class="filter-actions">
+        <button type="button" id="btnResetFilters" class="btn-secondary">重置筛选</button>
+      </div>
+    </section>
+
+    <section class="card table-card">
+      <div class="table-toolbar">
+        <div>
+          <h2 id="mainTableTitle">正式连续竞价主榜（普通换手率 ≥ 10%）</h2>
+          <p class="table-hint" id="tableHint">点击任意行可展开公司主营依据、两套换手率对照、竞价扣除明细及早盘至收盘走势。</p>
+        </div>
+        <div class="table-count-pill">
+          当前显示 <strong id="visibleRowCount">0</strong> / <span id="totalRowCount">0</span> 只
+        </div>
+      </div>
+
+      <div class="table-scroll-container" id="mainTableScroll">
+        <table class="screener-table" id="screenerTable">
+          <thead>
+            <tr>
+              <th class="sticky-col col-code sortable" data-sort="ts_code">代码</th>
+              <th class="sticky-col col-name sortable" data-sort="name">名称 / 一句话主营</th>
+              <th class="sortable" data-sort="board">板块</th>
+              <th class="sortable" data-sort="industry">行业</th>
+              <th class="num sortable" data-sort="price_0945">09:45 价格 (元)</th>
+              <th class="num sortable" data-sort="close_price">当日收盘价 (元)</th>
+              <th class="num sortable sort-active" id="thTurnover15m" data-sort="active_tr15">15分钟换手率 (%)</th>
+              <th class="num sortable" id="thTurnoverDay" data-sort="active_trday">全天换手率 (%)</th>
+              <th class="num sortable" data-sort="float_share_yi">流通股本 (亿股)</th>
+              <th class="num sortable" data-sort="circ_mv_yi">收盘流通市值 (亿元)</th>
+              <th class="num sortable" data-sort="free_mv_yi">收盘自由流通市值 (亿元) <span class="th-note">按收盘价</span></th>
+            </tr>
+          </thead>
+          <tbody id="mainTbody"></tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="empty-state hidden"></div>
+    </section>
+
+    <section id="rawUnverifiedSection" class="card table-card hidden">
+      <div class="table-toolbar">
+        <div>
+          <h2>原始首根 K 线，竞价归属待核验（独立展示，不计入正式主榜）</h2>
+          <p class="table-hint">以下记录仅含原始 09:45 首根 15 分钟 K 线（包含开盘集合竞价），当日暂缺可核准的独立竞价分离源，故严格与正式连续竞价榜隔离。</p>
+        </div>
+        <div class="table-count-pill">共 <strong id="rawRowCount">0</strong> 只</div>
+      </div>
+      <div class="table-scroll-container">
+        <table class="screener-table">
+          <thead>
+            <tr>
+              <th class="sticky-col col-code">代码</th>
+              <th class="sticky-col col-name">名称 / 主营</th>
+              <th>板块</th>
+              <th>行业</th>
+              <th class="num">09:45 价格 (元)</th>
+              <th class="num">当日收盘价 (元)</th>
+              <th class="num">原始首柱换手率 (%)</th>
+              <th class="num">全天换手率 (%)</th>
+              <th class="num">流通股本 (亿股)</th>
+              <th class="num">收盘流通市值 (亿元)</th>
+              <th>数据源说明</th>
+            </tr>
+          </thead>
+          <tbody id="rawTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card compliance-card" id="complianceSection">
+      <div class="compliance-header">
+        <h2>口径说明、数据许可边界与公开展示合规信息</h2>
+        <span id="complianceModeTag" class="badge badge-warn">合规核验</span>
+      </div>
+      <div class="method-grid">
+        <div class="method-box">
+          <h3>统计窗口与计算口径</h3>
+          <ul>
+            <li><strong>默认目标日 D</strong>：以北京时间（Asia/Shanghai）为准，取严格早于今日的最近开市日（周一观上周五，节后观节前最后交易日）。</li>
+            <li><strong>统计窗口</strong>：连续竞价 09:30–09:45，排除 09:25 开盘集合竞价。实测 BaoStock 首根 09:45 柱含开盘竞价，须经独立可分离竞价源核准后扣除，否则不入正式主榜。</li>
+            <li><strong>筛选精度</strong>：以股、元为计算单位，全精度判定 ≥ 10%（恰好 10% 入选，9.996% 虽展示为 10.00% 但不入选），预筛取普通与自由流通两口径并集。</li>
+            <li><strong>只读快照架构</strong>：访客浏览、刷新、搜索、排序均仅读取静态按日 JSON 快照，绝不触发行情接口调用。</li>
+          </ul>
+        </div>
+        <div class="method-box">
+          <h3>数据许可核查与公开展示说明</h3>
+          <p id="licenseReasonText" class="license-reason"></p>
+          <div id="licenseSourcesList" class="license-sources"></div>
+        </div>
+      </div>
+
+      <div class="vendor-section">
+        <h3>可支持公网公开展示的合规授权替代渠道</h3>
+        <div class="table-scroll-container">
+          <table class="mini-table" id="vendorTable">
+            <thead>
+              <tr>
+                <th>数据方 / 交易所信息公司</th>
+                <th>覆盖市场与字段</th>
+                <th>公开展示许可要求</th>
+                <th>已知费用 / 询价方式</th>
+                <th>官方入口</th>
+              </tr>
+            </thead>
+            <tbody id="vendorTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>A 股开盘 15 分钟换手率筛选站 · 盘后静态快照（Asia/Shanghai）</span>
+      <span>本站点仅供数据研究与口径展示，不构成任何投资建议。</span>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>

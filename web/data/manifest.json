@@ -1,0 +1,95 @@
+{
+  "mode": "compliance_notice",
+  "delivery_status": "真实榜单待授权",
+  "generated_at": "2026-11-24T19:43:53.274805+08:00",
+  "default_target_date": "2026-11-23",
+  "latest_success_date": "2026-11-23",
+  "available_dates": [
+    "2026-11-23"
+  ],
+  "is_synthetic_demo": true,
+  "recent_runs": [
+    {
+      "trade_date": "20261123",
+      "started_at": "2026-11-24T19:43:28.345351+08:00",
+      "finished_at": "2026-11-24T19:43:53.231821+08:00",
+      "status": "partial_coverage",
+      "pool_total": 5580,
+      "message": "部分覆盖"
+    },
+    {
+      "trade_date": "20261123",
+      "started_at": "2026-11-24T19:06:07.240319+08:00",
+      "finished_at": "2026-11-24T19:22:52.056153+08:00",
+      "status": "partial_coverage",
+      "pool_total": 5580,
+      "message": "部分覆盖"
+    }
+  ],
+  "license_audit": {
+    "delivery_status_public": "真实榜单待授权",
+    "reason": "核实《Tushare 数据服务协议》、BaoStock 免责声明及沪深北三家交易所行情授权声明：当前账户使用的 Tushare 普通积分许可仅限个人查看与非商业研究，BaoStock 未经书面许可不得公开传播，沪深北交易所要求面向匿名公网访客展示个股行情及衍生筛选榜单须具备对应行情展示许可。因此本公网版本严格遵守许可边界，不对外分发未获授权的真实个股行情与真实筛选名单；获得合法展示授权后，仅需设置环境变量 A15_PUBLISH_MODE=authorized_real 并接入授权数据源即可无缝切换。",
+    "sources_checked": [
+      {
+        "source": "Tushare Pro（普通个人账户）",
+        "allow_private_verify": true,
+        "allow_public_anonymous": false,
+        "basis": "《Tushare 数据服务协议》(doc_id=405) 限定个人、不可转让、非商业查看与研究，禁止向第三方公开分发。"
+      },
+      {
+        "source": "BaoStock",
+        "allow_private_verify": true,
+        "allow_public_anonymous": false,
+        "basis": "官网免责声明限定未经书面许可不得复制、传播或用于商业用途；且不含北交所。"
+      },
+      {
+        "source": "腾讯财经 / 东方财富 / 新浪公开网页接口",
+        "allow_private_verify": true,
+        "allow_public_anonymous": false,
+        "basis": "无面向第三方网站的再分发/展示许可，仅用于私人环境交叉校准开盘集合竞价与北交所覆盖验证。"
+      }
+    ],
+    "alternative_vendors": [
+      {
+        "name": "上证所信息网络有限公司（上证信息）",
+        "coverage": "沪市主板、科创板（Level-1/Level-2、日K/分钟K/逐笔/集合竞价）",
+        "public_display_note": "公开互联网展示需申请《上证所行情展示许可》；历史数据文件默认仅限机构内部自用，公开展示须单独签署展示许可协议。",
+        "pricing": "历史日K 1万元/年、历史分钟K 2万元/年、Level-1 历史 3万元/年、Level-2 历史 12万元/年；公开展示许可按终端/平台类型另行核价。",
+        "entry_url": "https://www.sseinfo.com/services/assortment/historical/",
+        "auth_url": "https://www.sseinfo.com/aboutus/authstatement/"
+      },
+      {
+        "name": "深圳证券信息有限公司（深证信）",
+        "coverage": "深市主板、创业板（基础行情、增强行情、逐笔与历史数据）",
+        "public_display_note": "面向公众网站或应用展示深市行情及衍生行情指标须取得深圳证券信息有限公司展示许可或通过持牌一级信息商转授权。",
+        "pricing": "需企业主体向深证信提交业务场景申请并按官方价目表询价。",
+        "entry_url": "https://www.szsi.cn/",
+        "auth_url": "https://www.szsi.cn/"
+      },
+      {
+        "name": "中证股转科技有限公司（北交所行情授权）",
+        "coverage": "北京证券交易所（Level-1 基础行情、历史行情与展示许可）",
+        "public_display_note": "北交所行情独家经营主体，公开展示需企业主体提交资质并签署许可合同。",
+        "pricing": "按北交所行情许可指南提交申请后核价。",
+        "entry_url": "https://www.bse.cn/application/guide.html",
+        "auth_url": "https://www.bse.cn/application/guide.html"
+      },
+      {
+        "name": "Tushare 机构/商业定制授权",
+        "coverage": "全市场 A 股日线、每日指标（含自由流通股本）、公司资料及分钟/开盘竞价（需额外权限）",
+        "public_display_note": "普通个人积分协议明确限定个人查看、非商业研究，禁止向匿名访客公开展示原始行情或整表分发；公网展示须联系官方洽谈机构/商业授权。",
+        "pricing": "普通积分账户不支持公网展示；商业授权需邮件咨询 waditu@163.com 询价。",
+        "entry_url": "https://tushare.pro/document/1?doc_id=405",
+        "auth_url": "https://tushare.pro/document/1?doc_id=405"
+      },
+      {
+        "name": "持牌行情信息商（恒生聚源 / 万得 Wind / 东方财富 Choice / 通联数据等）",
+        "coverage": "全市场沪深北 A 股行情、自由流通股本、分钟K线、集合竞价及基本面",
+        "public_display_note": "具备交易所一级行情转授权资质，可为企业级公网应用提供合规的公开展示 API 与数据分发许可。",
+        "pricing": "商业定制合同，通常数万元至数十万元/年起，按调用量与公网展示规模询价。",
+        "entry_url": "https://www.sseinfo.com/aboutus/authstatement/",
+        "auth_url": "https://www.sseinfo.com/aboutus/authstatement/"
+      }
+    ]
+  }
+}

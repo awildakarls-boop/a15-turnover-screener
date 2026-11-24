@@ -1,0 +1,146 @@
+"""End-to-end headless browser verification (desktop 1440x900 + mobile 390x844)
+for both private real-data audit mode and public compliance mode.
+Verifies zero external market API calls on page load/refresh and all interactive flows.
+"""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+from playwright.sync_api import sync_playwright
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def verify_mode(mode: str, port: int, expected_normal: int, expected_free: int, search_term: str) -> dict:
+    proc = subprocess.Popen(
+        [sys.executable, str(ROOT / "scripts" / "serve_local.py"), "--mode", mode, "--port", str(port)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    time.sleep(1.2)
+    url = f"http://127.0.0.1:{port}/"
+    result: dict = {"mode": mode, "url": url, "checks": {}}
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            # 1. Desktop 1440x900
+            ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+            page = ctx.new_page()
+            errors: list[str] = []
+            external_hosts: list[str] = []
+
+            page.on("pageerror", lambda e: errors.append(f"pageerror:{e}"))
+            page.on("console", lambda m: errors.append(f"console.{m.type}:{m.text}") if m.type == "error" else None)
+            page.on(
+                "request",
+                lambda req: external_hosts.append(req.url)
+                if not req.url.startswith(f"http://127.0.0.1:{port}")
+                else None,
+            )
+
+            page.goto(url, wait_until="networkidle")
+            page.wait_for_selector("#mainTbody tr.data-row")
+
+            # Verify initial normal caliber count
+            norm_kpi = int(page.locator("#kpiSelectedCount").inner_text().replace(",", ""))
+            norm_rows = page.locator("#mainTbody tr.data-row").count()
+            assert norm_kpi == expected_normal, f"[{mode}] expected normal KPI {expected_normal}, got {norm_kpi}"
+            assert norm_rows == expected_normal, f"[{mode}] expected normal rows {expected_normal}, got {norm_rows}"
+
+            # Expand funnel panel and verify reconciliation badge
+            page.click("#btnToggleFunnel")
+            funnel_badge = page.locator("#funnelCheckBadge").inner_text()
+            assert "守恒校验通过" in funnel_badge
+
+            # Click first row to expand details and verify required fields exist
+            page.locator("#mainTbody tr.data-row").first.click()
+            detail_text = page.locator("#mainTbody tr.detail-row").inner_text()
+            for req_label in ["一句话主营", "15 分钟普通换手率", "15 分钟自由流通换手率", "前 15 分钟成交量占全天", "09:45 至收盘涨跌幅"]:
+                assert req_label in detail_text, f"[{mode}] missing detail label: {req_label}"
+
+            # Switch to free-float caliber
+            page.click("#btnCaliberFree")
+            free_kpi = int(page.locator("#kpiSelectedCount").inner_text().replace(",", ""))
+            free_rows = page.locator("#mainTbody tr.data-row").count()
+            assert free_kpi == expected_free, f"[{mode}] expected free KPI {expected_free}, got {free_kpi}"
+            assert free_rows == expected_free, f"[{mode}] expected free rows {expected_free}, got {free_rows}"
+
+            # Test search filter
+            page.fill("#inputSearch", search_term)
+            filtered_rows = page.locator("#mainTbody tr.data-row").count()
+            assert filtered_rows >= 1 and filtered_rows <= expected_free, f"[{mode}] search '{search_term}' -> {filtered_rows}"
+            page.click("#btnResetFilters")
+            assert page.locator("#mainTbody tr.data-row").count() == expected_free
+
+            # Test board filter
+            first_board = page.locator("#mainTbody tr.data-row td").nth(2).inner_text().strip()
+            page.select_option("#selectBoard", first_board)
+            board_rows = page.locator("#mainTbody tr.data-row").count()
+            assert board_rows >= 1
+
+            # Test sorting by close_price
+            page.click("th[data-sort='close_price']")
+            assert "sort-active" in (page.locator("th[data-sort='close_price']").get_attribute("class") or "")
+
+            # Reload page and verify ZERO external requests (no market API called)
+            page.reload(wait_until="networkidle")
+            assert len(external_hosts) == 0, f"[{mode}] unexpected external requests: {external_hosts}"
+            assert len(errors) == 0, f"[{mode}] JS/console errors: {errors}"
+
+            # 2. Mobile 390x844
+            m_ctx = browser.new_context(viewport={"width": 390, "height": 844})
+            m_page = m_ctx.new_page()
+            m_errors: list[str] = []
+            m_page.on("pageerror", lambda e: m_errors.append(str(e)))
+            m_page.goto(url, wait_until="networkidle")
+            m_page.wait_for_selector("#mainTbody tr.data-row")
+            # Check horizontal scroll container works & sticky code column is sticky
+            sticky_pos = m_page.eval_on_selector(".col-code", "el => getComputedStyle(el).position")
+            scroll_w = m_page.eval_on_selector("#mainTableScroll", "el => el.scrollWidth")
+            client_w = m_page.eval_on_selector("#mainTableScroll", "el => el.clientWidth")
+            assert sticky_pos == "sticky", f"[{mode}] mobile col-code position={sticky_pos}"
+            assert scroll_w > client_w, f"[{mode}] mobile table should be horizontally scrollable"
+            assert len(m_errors) == 0, f"[{mode}] mobile errors: {m_errors}"
+
+            # Test clicking row on mobile
+            m_page.locator("#mainTbody tr.data-row").first.click()
+            assert m_page.locator("#mainTbody tr.detail-row").count() == 1
+
+            browser.close()
+            result["checks"] = {
+                "desktop_normal_count": norm_kpi,
+                "desktop_free_count": free_kpi,
+                "funnel_reconciled": True,
+                "detail_drawer_verified": True,
+                "search_and_board_filter_verified": True,
+                "sorting_verified": True,
+                "zero_external_market_calls": True,
+                "zero_console_errors": True,
+                "mobile_sticky_and_scroll_verified": True,
+                "mobile_scroll_width": scroll_w,
+                "mobile_client_width": client_w,
+            }
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+    return result
+
+
+def main() -> None:
+    r_priv = verify_mode("private", 8766, expected_normal=13, expected_free=35, search_term="002086")
+    print("PRIVATE REAL DATA VERIFY OK:", r_priv["checks"])
+    r_pub = verify_mode("public", 8767, expected_normal=4, expected_free=4, search_term="990001")
+    print("PUBLIC COMPLIANCE MODE VERIFY OK:", r_pub["checks"])
+
+
+if __name__ == "__main__":
+    main()

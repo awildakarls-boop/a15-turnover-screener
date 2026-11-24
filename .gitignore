@@ -1,0 +1,29 @@
+# Secrets & local env
+.env
+.env.*
+!.env.example
+*.token
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+
+# Private & runtime data (never commit raw/unlicensed market snapshots)
+data/private/
+data/cache/
+data/*.db
+data/*.lock
+*.log
+
+# OS / IDE / Local task prompt
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+Antigravity_*.md
+

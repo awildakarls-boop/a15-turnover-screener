@@ -1,0 +1,108 @@
+name: A15 Daily Update & Pages Deploy
+
+on:
+  schedule:
+    # Asia/Shanghai 20:30 (Mon-Fri) -> 12:30 UTC (Mon-Fri)
+    - cron: "30 12 * * 1-5"
+    # Asia/Shanghai 07:30 next day check & backfill (Tue-Sat 07:30 CST -> Mon-Fri 23:30 UTC)
+    - cron: "30 23 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      trade_date:
+        description: "可选：指定回补日期 YYYYMMDD（留空则按北京时间默认目标日 D 采集）"
+        required: false
+        default: ""
+      force_refresh:
+        description: "是否忽略缓存强制重采分钟线"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Shared lock: never run scheduled job and manual backfill concurrently
+concurrency:
+  group: a15-daily-collector-and-pages
+  cancel-in-progress: false
+
+jobs:
+  collect-and-publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run isolated acceptance tests
+        run: pytest -v
+
+      - name: Restore resumable SQLite cache
+        uses: actions/cache@v4
+        with:
+          path: data/state.db
+          key: a15-state-db-${{ github.run_id }}
+          restore-keys: |
+            a15-state-db-
+
+      - name: Verify BaoStock connectivity from cloud runner
+        run: |
+          python -c "import baostock as bs; lg = bs.login(); print('BaoStock login:', lg.error_code, lg.error_msg); assert lg.error_code == '0'; bs.logout()"
+
+      - name: Collect target trading day and export public snapshots
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          A15_PUBLISH_MODE: ${{ vars.A15_PUBLISH_MODE || 'compliance_notice' }}
+        run: |
+          if [ -z "$TUSHARE_TOKEN" ]; then
+            echo "TUSHARE_TOKEN secret not configured; exporting compliance demo snapshot only."
+            python scripts/export_public.py --mode compliance_notice
+          else
+            ARGS=""
+            if [ -n "${{ inputs.trade_date }}" ]; then
+              ARGS="--date ${{ inputs.trade_date }}"
+            fi
+            if [ "${{ inputs.force_refresh }}" = "true" ]; then
+              ARGS="$ARGS --force-refresh"
+            fi
+            python scripts/run_daily.py $ARGS
+          fi
+
+      - name: Verify no secret leaked in web/
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: |
+          python -c "
+          import os, pathlib
+          tok = os.environ.get('TUSHARE_TOKEN', '').strip()
+          if tok:
+              for p in pathlib.Path('web').rglob('*'):
+                  if p.is_file():
+                      assert tok not in p.read_text(encoding='utf-8', errors='ignore'), f'Token leak in {p}'
+          print('Secret scan passed.')
+          "
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload static site artifact (web/)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
