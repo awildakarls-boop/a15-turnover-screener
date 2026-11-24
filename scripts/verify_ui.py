@@ -45,28 +45,22 @@ def verify_url(url: str, expected_normal: int, expected_free: int, search_term: 
 
         delivery_badge = page.locator("#deliveryBadge").inner_text()
         target_date = page.locator("#metaTargetDate").inner_text()
-        norm_kpi = int(page.locator("#kpiSelectedCount").inner_text().replace(",", ""))
-        norm_rows = page.locator("#mainTbody tr.data-row").count()
-        assert norm_kpi == expected_normal, f"[{label}] expected normal KPI {expected_normal}, got {norm_kpi}"
-        assert norm_rows == expected_normal, f"[{label}] expected normal rows {expected_normal}, got {norm_rows}"
 
-        # Expand funnel panel and verify reconciliation badge
-        page.click("#btnToggleFunnel")
-        funnel_badge = page.locator("#funnelCheckBadge").inner_text()
-        assert "守恒校验通过" in funnel_badge
+        # Verify normal caliber button & board coverage section are removed
+        assert page.locator("#btnCaliberNormal").count() == 0, f"[{label}] btnCaliberNormal should be removed"
+        assert page.locator("#boardCoverageGrid").count() == 0, f"[{label}] boardCoverageGrid should be removed"
 
-        # Click first row to expand details and verify required fields exist
-        page.locator("#mainTbody tr.data-row").first.click()
-        detail_text = page.locator("#mainTbody tr.detail-row").inner_text()
-        for req_label in ["一句话主营", "15 分钟普通换手率", "15 分钟自由流通换手率", "前 15 分钟成交量占全天", "09:45 至收盘涨跌幅"]:
-            assert req_label in detail_text, f"[{label}] missing detail label: {req_label}"
-
-        # Switch to free-float caliber
-        page.click("#btnCaliberFree")
+        # Verify direct free-float list count
         free_kpi = int(page.locator("#kpiSelectedCount").inner_text().replace(",", ""))
         free_rows = page.locator("#mainTbody tr.data-row").count()
         assert free_kpi == expected_free, f"[{label}] expected free KPI {expected_free}, got {free_kpi}"
         assert free_rows == expected_free, f"[{label}] expected free rows {expected_free}, got {free_rows}"
+
+        # Click first row to expand details and verify required fields exist
+        page.locator("#mainTbody tr.data-row").first.click()
+        detail_text = page.locator("#mainTbody tr.detail-row").inner_text()
+        for req_label in ["一句话主营", "15 分钟自由流通换手率", "前 15 分钟成交量占全天", "09:45 至收盘涨跌幅"]:
+            assert req_label in detail_text, f"[{label}] missing detail label: {req_label}"
 
         # Test search filter
         page.fill("#inputSearch", search_term)
@@ -113,9 +107,8 @@ def verify_url(url: str, expected_normal: int, expected_free: int, search_term: 
             "http_status": resp.status,
             "delivery_badge": delivery_badge,
             "target_date": target_date,
-            "desktop_normal_count": norm_kpi,
             "desktop_free_count": free_kpi,
-            "funnel_reconciled": True,
+            "normal_list_and_board_coverage_removed": True,
             "detail_drawer_verified": True,
             "search_and_board_filter_verified": True,
             "sorting_verified": True,

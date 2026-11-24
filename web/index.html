@@ -32,20 +32,14 @@
 
     <section class="card summary-panel">
       <div class="summary-top">
-        <div class="caliber-switch" role="tablist" aria-label="换手率口径切换">
-          <button type="button" id="btnCaliberNormal" class="caliber-btn active" data-caliber="normal" role="tab" aria-selected="true">
-            <span class="caliber-name">普通换手率主榜</span>
-            <span class="caliber-sub">15m 成交股数 / 流通股本 ≥ 10%</span>
-          </button>
-          <button type="button" id="btnCaliberFree" class="caliber-btn" data-caliber="free" role="tab" aria-selected="false">
-            <span class="caliber-name">自由流通换手率榜</span>
-            <span class="caliber-sub">15m 成交股数 / 自由流通股本 ≥ 10%</span>
-          </button>
+        <div class="caliber-static">
+          <span class="caliber-title">自由流通换手率榜</span>
+          <span class="caliber-desc">09:30–09:45 连续竞价成交股数 / 自由流通股本 ≥ 10%（按 15 分钟自由换手率降序）</span>
         </div>
 
         <div class="kpi-strip">
           <div class="kpi-item kpi-primary">
-            <span class="kpi-label" id="kpiSelectedLabel">当前口径入选</span>
+            <span class="kpi-label" id="kpiSelectedLabel">自由流通榜入选</span>
             <strong class="kpi-value" id="kpiSelectedCount">--</strong>
             <span class="kpi-unit">只</span>
           </div>
@@ -64,38 +58,6 @@
             <strong class="kpi-value" id="kpiUnverified">--</strong>
             <span class="kpi-unit">只</span>
           </div>
-        </div>
-      </div>
-
-      <div class="board-coverage-wrap">
-        <div class="section-mini-header">
-          <span>分板块覆盖与入选统计（<span id="coverageCaliberLabel">普通口径</span>）</span>
-          <button type="button" id="btnToggleFunnel" class="link-btn">展开完整口径漏斗对账 ▾</button>
-        </div>
-        <div id="boardCoverageGrid" class="board-grid"></div>
-      </div>
-
-      <div id="funnelPanel" class="funnel-panel hidden">
-        <div class="funnel-title-row">
-          <h3>全口径扫描漏斗对账（保证总数严格守恒）</h3>
-          <span id="funnelCheckBadge" class="badge badge-ok">守恒校验通过</span>
-        </div>
-        <div class="funnel-table-wrap">
-          <table class="mini-table" id="funnelTable">
-            <thead>
-              <tr>
-                <th>板块 / 口径</th>
-                <th class="num">应扫描数</th>
-                <th class="num">停牌数</th>
-                <th class="num">全天预筛排除</th>
-                <th class="num">分钟核验未入选</th>
-                <th class="num">已入选</th>
-                <th class="num">未知 / 未核验</th>
-                <th class="num">对账和</th>
-              </tr>
-            </thead>
-            <tbody id="funnelTbody"></tbody>
-          </table>
         </div>
       </div>
     </section>
@@ -134,8 +96,8 @@
     <section class="card table-card">
       <div class="table-toolbar">
         <div>
-          <h2 id="mainTableTitle">正式连续竞价主榜（普通换手率 ≥ 10%）</h2>
-          <p class="table-hint" id="tableHint">点击任意行可展开公司主营依据、两套换手率对照、竞价扣除明细及早盘至收盘走势。</p>
+          <h2 id="mainTableTitle">自由流通换手率榜（09:30–09:45 连续竞价 ≥ 10%）</h2>
+          <p class="table-hint" id="tableHint">点击任意行可展开公司主营依据、换手率明细、竞价扣除记录及 09:45 至收盘走势。</p>
         </div>
         <div class="table-count-pill">
           当前显示 <strong id="visibleRowCount">0</strong> / <span id="totalRowCount">0</span> 只
@@ -152,8 +114,8 @@
               <th class="sortable" data-sort="industry">行业</th>
               <th class="num sortable" data-sort="price_0945">09:45 价格 (元)</th>
               <th class="num sortable" data-sort="close_price">当日收盘价 (元)</th>
-              <th class="num sortable sort-active" id="thTurnover15m" data-sort="active_tr15">15分钟换手率 (%)</th>
-              <th class="num sortable" id="thTurnoverDay" data-sort="active_trday">全天换手率 (%)</th>
+              <th class="num sortable sort-active" id="thTurnover15m" data-sort="active_tr15">15分钟自由换手 (%)</th>
+              <th class="num sortable" id="thTurnoverDay" data-sort="active_trday">全天自由换手 (%)</th>
               <th class="num sortable" data-sort="float_share_yi">流通股本 (亿股)</th>
               <th class="num sortable" data-sort="circ_mv_yi">收盘流通市值 (亿元)</th>
               <th class="num sortable" data-sort="free_mv_yi">收盘自由流通市值 (亿元) <span class="th-note">按收盘价</span></th>

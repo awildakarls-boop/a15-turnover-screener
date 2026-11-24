@@ -7,14 +7,13 @@
     manifest: null,
     snapshot: null,
     selectedDate: null,
-    caliber: "normal", // "normal" | "free"
+    caliber: "free", // Only free-float turnover list is displayed
     board: "",
     industry: "",
     search: "",
     sortKey: "active_tr15",
     sortDir: "desc",
     expandedCodes: new Set(),
-    funnelOpen: false,
   };
 
   const els = {
@@ -23,19 +22,11 @@
     metaScanStatus: document.getElementById("metaScanStatus"),
     metaUpdatedAt: document.getElementById("metaUpdatedAt"),
     statusBanner: document.getElementById("statusBanner"),
-    btnCaliberNormal: document.getElementById("btnCaliberNormal"),
-    btnCaliberFree: document.getElementById("btnCaliberFree"),
     kpiSelectedLabel: document.getElementById("kpiSelectedLabel"),
     kpiSelectedCount: document.getElementById("kpiSelectedCount"),
     kpiPoolTotal: document.getElementById("kpiPoolTotal"),
     kpiSuspended: document.getElementById("kpiSuspended"),
     kpiUnverified: document.getElementById("kpiUnverified"),
-    coverageCaliberLabel: document.getElementById("coverageCaliberLabel"),
-    boardCoverageGrid: document.getElementById("boardCoverageGrid"),
-    btnToggleFunnel: document.getElementById("btnToggleFunnel"),
-    funnelPanel: document.getElementById("funnelPanel"),
-    funnelCheckBadge: document.getElementById("funnelCheckBadge"),
-    funnelTbody: document.getElementById("funnelTbody"),
     selectDate: document.getElementById("selectDate"),
     selectBoard: document.getElementById("selectBoard"),
     selectIndustry: document.getElementById("selectIndustry"),
@@ -213,89 +204,12 @@
     const s = state.snapshot;
     if (!s || !s.funnels) return;
 
-    const cal = state.caliber;
-    const calLabel = cal === "normal" ? "普通换手率口径" : "自由流通换手率口径";
-    const f = s.funnels[cal];
-
-    els.kpiSelectedLabel.textContent = cal === "normal" ? "普通榜入选" : "自由流通榜入选";
+    const f = s.funnels[state.caliber];
+    els.kpiSelectedLabel.textContent = "自由流通榜入选";
     els.kpiSelectedCount.textContent = fmtInt(f.selected);
     els.kpiPoolTotal.textContent = fmtInt(f.pool_total);
     els.kpiSuspended.textContent = fmtInt(f.suspended);
     els.kpiUnverified.textContent = fmtInt(f.unverified);
-    els.coverageCaliberLabel.textContent = calLabel;
-
-    // Board cards
-    const cardsHtml = BOARD_ORDER.map((b) => {
-      const bf = (s.board_funnels && s.board_funnels[b] && s.board_funnels[b][cal]) || {
-        pool_total: 0, suspended: 0, prescreen_excluded: 0, verified_not_selected: 0, selected: 0, unverified: 0,
-      };
-      const verified = bf.pool_total - bf.unverified;
-      const covPct = bf.pool_total > 0 ? ((verified / bf.pool_total) * 100).toFixed(1) : "0.0";
-      const activeCls = state.board === b ? " active" : "";
-      const unvText = bf.unverified > 0 ? `<span style="color:#b45309">未核验 ${bf.unverified}</span>` : `<span>覆盖 ${covPct}%</span>`;
-      return `
-        <div class="board-card${activeCls}" data-board="${esc(b)}" title="点击按「${esc(b)}」筛选">
-          <div class="board-card-top">
-            <span class="board-name">${esc(b)}</span>
-            <span class="board-sel">${bf.selected} 只</span>
-          </div>
-          <div class="board-sub">
-            <span>池 ${bf.pool_total}</span>
-            ${unvText}
-          </div>
-        </div>
-      `;
-    }).join("");
-    els.boardCoverageGrid.innerHTML = cardsHtml;
-
-    els.boardCoverageGrid.querySelectorAll(".board-card").forEach((card) => {
-      card.addEventListener("click", () => {
-        const b = card.getAttribute("data-board");
-        state.board = state.board === b ? "" : b;
-        els.selectBoard.value = state.board;
-        renderSummaryAndBoards();
-        renderTable();
-      });
-    });
-
-    // Funnel reconciliation table
-    let allOk = true;
-    const funnelRows = [];
-    for (const b of BOARD_ORDER) {
-      const bf = (s.board_funnels && s.board_funnels[b] && s.board_funnels[b][cal]) || null;
-      if (!bf) continue;
-      const sum = bf.suspended + bf.prescreen_excluded + bf.verified_not_selected + bf.selected + bf.unverified;
-      if (sum !== bf.pool_total) allOk = false;
-      funnelRows.push(`
-        <tr>
-          <td>${esc(b)}</td>
-          <td class="num">${fmtInt(bf.pool_total)}</td>
-          <td class="num">${fmtInt(bf.suspended)}</td>
-          <td class="num">${fmtInt(bf.prescreen_excluded)}</td>
-          <td class="num">${fmtInt(bf.verified_not_selected)}</td>
-          <td class="num"><strong>${fmtInt(bf.selected)}</strong></td>
-          <td class="num">${fmtInt(bf.unverified)}</td>
-          <td class="num">${fmtInt(sum)} ${sum === bf.pool_total ? "✓" : "✗"}</td>
-        </tr>
-      `);
-    }
-    const totalSum = f.suspended + f.prescreen_excluded + f.verified_not_selected + f.selected + f.unverified;
-    if (totalSum !== f.pool_total) allOk = false;
-    funnelRows.push(`
-      <tr class="row-total">
-        <td>全市场合计（${esc(calLabel)}）</td>
-        <td class="num">${fmtInt(f.pool_total)}</td>
-        <td class="num">${fmtInt(f.suspended)}</td>
-        <td class="num">${fmtInt(f.prescreen_excluded)}</td>
-        <td class="num">${fmtInt(f.verified_not_selected)}</td>
-        <td class="num">${fmtInt(f.selected)}</td>
-        <td class="num">${fmtInt(f.unverified)}</td>
-        <td class="num">${fmtInt(totalSum)} ${totalSum === f.pool_total ? "✓" : "✗"}</td>
-      </tr>
-    `);
-    els.funnelTbody.innerHTML = funnelRows.join("");
-    els.funnelCheckBadge.textContent = allOk ? "守恒校验通过" : "对账异常";
-    els.funnelCheckBadge.className = allOk ? "badge badge-ok" : "badge badge-danger";
   }
 
   function populateIndustryOptions() {
@@ -401,12 +315,9 @@
     const allRows = getActiveRows();
     const cal = state.caliber;
 
-    els.mainTableTitle.textContent =
-      cal === "normal"
-        ? "正式连续竞价主榜（普通换手率 ≥ 10%）"
-        : "正式连续竞价自由流通榜（自由流通换手率 ≥ 10%）";
-    els.thTurnover15m.textContent = cal === "normal" ? "15分钟普通换手 (%)" : "15分钟自由换手 (%)";
-    els.thTurnoverDay.textContent = cal === "normal" ? "全天普通换手 (%)" : "全天自由换手 (%)";
+    els.mainTableTitle.textContent = "自由流通换手率榜（09:30–09:45 连续竞价 ≥ 10%）";
+    els.thTurnover15m.textContent = "15分钟自由换手 (%)";
+    els.thTurnoverDay.textContent = "全天自由换手 (%)";
 
     // Filter
     const q = state.search.trim().toLowerCase();
@@ -613,34 +524,9 @@
   }
 
   function bindEvents() {
-    const switchCaliber = (cal) => {
-      state.caliber = cal;
-      state.sortKey = "active_tr15";
-      state.sortDir = "desc";
-      state.expandedCodes.clear();
-      els.btnCaliberNormal.classList.toggle("active", cal === "normal");
-      els.btnCaliberFree.classList.toggle("active", cal === "free");
-      els.btnCaliberNormal.setAttribute("aria-selected", String(cal === "normal"));
-      els.btnCaliberFree.setAttribute("aria-selected", String(cal === "free"));
-      populateIndustryOptions();
-      renderHeaderAndBanner();
-      renderSummaryAndBoards();
-      renderTable();
-    };
-
-    els.btnCaliberNormal.addEventListener("click", () => switchCaliber("normal"));
-    els.btnCaliberFree.addEventListener("click", () => switchCaliber("free"));
-
-    els.btnToggleFunnel.addEventListener("click", () => {
-      state.funnelOpen = !state.funnelOpen;
-      els.funnelPanel.classList.toggle("hidden", !state.funnelOpen);
-      els.btnToggleFunnel.textContent = state.funnelOpen ? "收起完整口径漏斗对账 ▴" : "展开完整口径漏斗对账 ▾";
-    });
-
     els.selectDate.addEventListener("change", (e) => loadDate(e.target.value));
     els.selectBoard.addEventListener("change", (e) => {
       state.board = e.target.value;
-      renderSummaryAndBoards();
       renderTable();
     });
     els.selectIndustry.addEventListener("change", (e) => {
@@ -658,7 +544,6 @@
       els.selectBoard.value = "";
       els.selectIndustry.value = "";
       els.inputSearch.value = "";
-      renderSummaryAndBoards();
       renderTable();
     });
 
