@@ -2,10 +2,10 @@ name: A15 Daily Update & Pages Deploy
 
 on:
   schedule:
-    # Asia/Shanghai 20:30 (Mon-Fri) -> 12:30 UTC (Mon-Fri)
-    - cron: "30 12 * * 1-5"
-    # Asia/Shanghai 07:30 next day check & backfill (Tue-Sat 07:30 CST -> Mon-Fri 23:30 UTC)
-    - cron: "30 23 * * 1-5"
+    # Asia/Shanghai 20:00 (Mon-Fri) -> 12:00 UTC (Mon-Fri): collect & publish same-day data
+    - cron: "0 12 * * 1-5"
+    # Asia/Shanghai 20:40 (Mon-Fri) -> 12:40 UTC (Mon-Fri): safety check & backfill if minute feed lagged at 20:00
+    - cron: "40 12 * * 1-5"
   workflow_dispatch:
     inputs:
       trade_date:

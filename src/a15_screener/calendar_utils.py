@@ -32,19 +32,23 @@ def today_beijing_yyyymmdd(now_bj: datetime | None = None) -> str:
 def resolve_default_target_date(
     open_dates: Iterable[str],
     now_bj: datetime | None = None,
+    same_day_cutoff_hour: int = 20,
 ) -> str:
-    """Resolve default target trading date D:
-    Strictly earlier than today in Asia/Shanghai (cal_date < today_bj),
-    taking the latest open trading day from the exchange calendar.
-    - Ordinary Monday -> last Friday.
-    - First day after holiday -> last open trading day before holiday.
-    - Even if today has already closed -> still strictly before today.
+    """Resolve default target trading date D in Asia/Shanghai:
+    - At or after 20:00 CST on a trading day: include today (cal_date <= today_bj).
+    - Before 20:00 CST (or if today is non-trading): latest open trading day strictly
+      before today (or <= today on weekends/holidays, which naturally falls back to
+      the last open trading day).
     """
-    today_str = today_beijing_yyyymmdd(now_bj)
+    dt = now_bj.astimezone(BJ_TZ) if now_bj is not None else datetime.now(BJ_TZ)
+    today_str = dt.strftime("%Y%m%d")
     normalized = sorted({normalize_date_yyyymmdd(d) for d in open_dates})
-    candidates = [d for d in normalized if d < today_str]
+    if dt.hour >= same_day_cutoff_hour:
+        candidates = [d for d in normalized if d <= today_str]
+    else:
+        candidates = [d for d in normalized if d < today_str]
     if not candidates:
-        raise ValueError(f"No open trading day strictly earlier than {today_str}")
+        raise ValueError(f"No open trading day available for {dt.isoformat()}")
     return candidates[-1]
 
 
@@ -52,9 +56,14 @@ def list_recent_closed_trading_days(
     open_dates: Iterable[str],
     count: int = 10,
     now_bj: datetime | None = None,
+    same_day_cutoff_hour: int = 20,
 ) -> list[str]:
-    today_str = today_beijing_yyyymmdd(now_bj)
-    normalized = sorted({normalize_date_yyyymmdd(d) for d in open_dates if normalize_date_yyyymmdd(d) < today_str})
+    dt = now_bj.astimezone(BJ_TZ) if now_bj is not None else datetime.now(BJ_TZ)
+    today_str = dt.strftime("%Y%m%d")
+    if dt.hour >= same_day_cutoff_hour:
+        normalized = sorted({normalize_date_yyyymmdd(d) for d in open_dates if normalize_date_yyyymmdd(d) <= today_str})
+    else:
+        normalized = sorted({normalize_date_yyyymmdd(d) for d in open_dates if normalize_date_yyyymmdd(d) < today_str})
     return normalized[-count:]
 
 
