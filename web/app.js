@@ -288,10 +288,12 @@
             </div>
 
             <div class="detail-card">
-              <h4>早盘量额、日内复盘与竞价校准</h4>
+              <h4>早盘量额与日内复盘</h4>
               <div class="kv-list">
-                <span class="kv-k">早盘成交量 / 成交额</span>
+                <span class="kv-k">09:30–09:45 成交量 / 额</span>
                 <span class="kv-v">${fmtWanShares(r.v15_shares)} / ${fmtWanYuan(r.a15_yuan)}</span>
+                <span class="kv-k">其中开盘集合竞价量</span>
+                <span class="kv-v">${r.auction_vol_shares !== null && r.auction_vol_shares !== undefined ? fmtWanShares(r.auction_vol_shares) : "—"}</span>
                 <span class="kv-k">全天成交量 / 成交额</span>
                 <span class="kv-v">${fmtWanShares(r.vday_shares)} / ${fmtWanYuan(r.aday_yuan)}</span>
                 <span class="kv-k">前 15 分钟成交量占全天</span>
@@ -302,8 +304,6 @@
                 <span class="kv-v ${pctClass(r.pct_0945_to_close)}">${fmtSignedPct(r.pct_0945_to_close)}</span>
                 <span class="kv-k">K 线来源与时间</span>
                 <span class="kv-v kv-v-left">${esc(r.minute_source || "")} · ${esc(r.minute_bar_time || "")}</span>
-                <span class="kv-k">竞价处理</span>
-                <span class="kv-v kv-v-left">${esc(r.auction_handling || "—")}</span>
               </div>
               ${warningsHtml}
             </div>
@@ -317,7 +317,7 @@
     const allRows = getActiveRows();
     const cal = state.caliber;
 
-    els.mainTableTitle.textContent = "自由流通换手率榜（09:30–09:45 连续竞价 ≥ 10%）";
+    els.mainTableTitle.textContent = "自由流通换手率榜（09:30–09:45 含开盘竞价 ≥ 10%）";
     els.thTurnover15m.textContent = "15分钟自由换手 (%)";
     els.thTurnoverDay.textContent = "全天自由换手 (%)";
 

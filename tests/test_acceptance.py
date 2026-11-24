@@ -84,12 +84,12 @@ def test_acceptance_item_1_exact_benchmark_case() -> None:
         status="verified_continuous",
         source="isolated_unit_test",
         bar_time="20261123094500000",
-        raw_volume_shares=Decimal("8200000"),
-        raw_amount_yuan=Decimal("98400000"),
+        raw_volume_shares=Decimal("8000000"),  # 首根15分钟总成交800万股（含开盘竞价）
+        raw_amount_yuan=Decimal("96000000"),
         auction_volume_shares=Decimal("200000"),
         auction_amount_yuan=Decimal("2400000"),
-        continuous_volume_shares=Decimal("8000000"),  # 800万股
-        continuous_amount_yuan=Decimal("96000000"),
+        continuous_volume_shares=Decimal("7800000"),
+        continuous_amount_yuan=Decimal("93600000"),
         price_0945=Decimal("12.00"),
     )
 
@@ -287,21 +287,21 @@ def test_first_bar_with_auction_deduction_and_unverified_isolation() -> None:
         circ_mv_w=Decimal("10200"),
     )
 
-    # Case A: auction verified and deducted -> 9.5% -> NOT selected in formal main list
+    # Case A: first 15m bar total volume (1,050,000 = 10.5% including opening auction) qualifies directly
     res_verified = resolve_minute_window(stock, "20261123", rec, FakeBaoStock(), FakeIndWithAuction())
     assert res_verified.status == "verified_continuous"
-    assert res_verified.continuous_volume_shares == Decimal("950000")
+    assert res_verified.raw_volume_shares == Decimal("1050000")
+    assert res_verified.auction_volume_shares == Decimal("100000")
     ev_a = evaluate_universe([stock], {stock.ts_code: rec}, {stock.ts_code: res_verified})
-    assert len(ev_a["main_lists"]["normal"]) == 0
-    assert ev_a["funnels"]["normal"]["verified_not_selected"] == 1
+    assert len(ev_a["main_lists"]["normal"]) == 1
+    assert ev_a["main_lists"]["normal"][0]["turnover_15m_normal"] == pytest.approx(10.5, rel=1e-12)
 
-    # Case B: auction unavailable -> isolated to raw_unverified_lists, formal main list stays empty and unverified=1
+    # Case B: even when separate auction feed is unavailable, first 15m bar total volume is still valid & evaluated
     res_unver = resolve_minute_window(stock, "20261123", rec, FakeBaoStock(), FakeIndNoAuction())
-    assert res_unver.status == "raw_first_bar_unverified_auction"
+    assert res_unver.raw_volume_shares == Decimal("1050000")
     ev_b = evaluate_universe([stock], {stock.ts_code: rec}, {stock.ts_code: res_unver})
-    assert len(ev_b["main_lists"]["normal"]) == 0
-    assert len(ev_b["raw_unverified_lists"]["normal"]) == 1
-    assert ev_b["funnels"]["normal"]["unverified"] == 1
+    assert len(ev_b["main_lists"]["normal"]) == 1
+    assert ev_b["funnels"]["normal"]["selected"] == 1
 
 
 def test_missing_opening_bar_and_suspension() -> None:

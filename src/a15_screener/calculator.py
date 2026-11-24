@@ -138,6 +138,9 @@ def compute_stock_metrics(
     use_raw_unverified: bool = False,
 ) -> dict[str, Any]:
     """Compute exact full-precision metrics in shares & yuan.
+    Uses first 15m bar total volume (09:30-09:45 including 09:25 opening call auction,
+    matching mainstream A-share trading terminals). Falls back to continuous_volume_shares
+    only if raw_volume_shares is absent.
     Selection uses exact Decimal >= 10 (no rounding before threshold test).
     """
     v_day = rec.vol_lots * HUNDRED if rec.vol_lots is not None else None
@@ -147,12 +150,8 @@ def compute_stock_metrics(
     f_shares = (rec.float_share_w * TEN_THOUSAND) if (rec.float_share_w is not None and rec.float_share_w > 0) else None
     ff_shares = (rec.free_share_w * TEN_THOUSAND) if (rec.free_share_w is not None and rec.free_share_w > 0) else None
 
-    if use_raw_unverified:
-        v15 = minute.raw_volume_shares
-        a15 = minute.raw_amount_yuan
-    else:
-        v15 = minute.continuous_volume_shares
-        a15 = minute.continuous_amount_yuan
+    v15 = minute.raw_volume_shares if minute.raw_volume_shares is not None else minute.continuous_volume_shares
+    a15 = minute.raw_amount_yuan if minute.raw_amount_yuan is not None else minute.continuous_amount_yuan
 
     warnings: list[str] = list(minute.notes)
 
@@ -361,7 +360,7 @@ def evaluate_universe(
             },
         )
 
-        if minute.status in ("verified_continuous", "verified_zero_volume"):
+        if minute.status in ("verified_continuous", "verified_zero_volume", "raw_first_bar_unverified_auction"):
             row = compute_stock_metrics(stock, rec, minute, use_raw_unverified=False)
             row["business_summary"] = comp_info["summary"]
             row["business_source"] = comp_info["source"]
@@ -385,25 +384,6 @@ def evaluate_universe(
 
             if (not row["selected_normal"]) and (not row["selected_free"]):
                 audit_samples_not_selected.append(row)
-
-        elif minute.status == "raw_first_bar_unverified_auction":
-            # Does NOT count into verified formal continuous-auction coverage!
-            if n_stage == "candidate":
-                _inc("normal", board, "unverified")
-            if f_stage == "candidate":
-                _inc("free", board, "unverified")
-
-            raw_row = compute_stock_metrics(stock, rec, minute, use_raw_unverified=True)
-            raw_row["business_summary"] = comp_info["summary"]
-            raw_row["business_source"] = comp_info["source"]
-            raw_row["business_source_date"] = comp_info.get("source_date")
-            raw_row["business_is_latest_fallback"] = comp_info.get("is_latest_fallback", False)
-            raw_row["business_raw_excerpt"] = comp_info.get("raw_excerpt", "")
-            raw_row["website"] = comp_info.get("website", "")
-            if n_stage == "candidate" and raw_row["selected_normal"]:
-                raw_unverified_normal.append(raw_row)
-            if f_stage == "candidate" and raw_row["selected_free"]:
-                raw_unverified_free.append(raw_row)
 
     # Sort descending by full-precision exact turnover rate, tie-break by ts_code
     main_normal.sort(
