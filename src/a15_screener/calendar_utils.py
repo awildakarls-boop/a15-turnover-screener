@@ -32,11 +32,11 @@ def today_beijing_yyyymmdd(now_bj: datetime | None = None) -> str:
 def resolve_default_target_date(
     open_dates: Iterable[str],
     now_bj: datetime | None = None,
-    same_day_cutoff_hour: int = 20,
+    same_day_cutoff_hour: int = 19,
 ) -> str:
     """Resolve default target trading date D in Asia/Shanghai:
-    - At or after 20:00 CST on a trading day: include today (cal_date <= today_bj).
-    - Before 20:00 CST (or if today is non-trading): latest open trading day strictly
+    - At or after 19:00 CST on a trading day: include today (cal_date <= today_bj).
+    - Before 19:00 CST (or if today is non-trading): latest open trading day strictly
       before today (or <= today on weekends/holidays, which naturally falls back to
       the last open trading day).
     """
@@ -56,7 +56,7 @@ def list_recent_closed_trading_days(
     open_dates: Iterable[str],
     count: int = 10,
     now_bj: datetime | None = None,
-    same_day_cutoff_hour: int = 20,
+    same_day_cutoff_hour: int = 19,
 ) -> list[str]:
     dt = now_bj.astimezone(BJ_TZ) if now_bj is not None else datetime.now(BJ_TZ)
     today_str = dt.strftime("%Y%m%d")

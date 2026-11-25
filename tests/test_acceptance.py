@@ -361,17 +361,17 @@ def test_missing_opening_bar_and_suspension() -> None:
 
 
 def test_calendar_rules_monday_post_holiday_and_after_close() -> None:
-    """Default target day D updates to same day at/after 20:00 CST on trading days,
-    and falls back to previous open day before 20:00 CST or on weekends/holidays."""
+    """Default target day D updates to same day at/after 19:00 CST on trading days,
+    and falls back to previous open day before 19:00 CST or on weekends/holidays."""
     open_days = ["20260929", "20260930", "20261008", "20261009", "20261012"]
-    # Post National Day holiday before 20:00 -> last open day before holiday (2026-09-30)
-    assert resolve_default_target_date(open_days, datetime(2026, 10, 8, 19, 59, tzinfo=BJ_TZ)) == "20260930"
-    # Post National Day holiday at 20:00 -> updates to same day (2026-10-08)
-    assert resolve_default_target_date(open_days, datetime(2026, 10, 8, 20, 0, tzinfo=BJ_TZ)) == "20261008"
+    # Post National Day holiday before 19:00 -> last open day before holiday (2026-09-30)
+    assert resolve_default_target_date(open_days, datetime(2026, 10, 8, 18, 59, tzinfo=BJ_TZ)) == "20260930"
+    # Post National Day holiday at 19:00 -> updates to same day (2026-10-08)
+    assert resolve_default_target_date(open_days, datetime(2026, 10, 8, 19, 0, tzinfo=BJ_TZ)) == "20261008"
     # Ordinary Monday morning 10:00 -> last Friday 2026-10-09
     assert resolve_default_target_date(open_days, datetime(2026, 10, 12, 10, 0, tzinfo=BJ_TZ)) == "20261009"
-    # Ordinary Monday evening 20:00+ -> Monday itself 2026-10-12
-    assert resolve_default_target_date(open_days, datetime(2026, 10, 12, 20, 0, tzinfo=BJ_TZ)) == "20261012"
+    # Ordinary Monday evening 19:00+ -> Monday itself 2026-10-12
+    assert resolve_default_target_date(open_days, datetime(2026, 10, 12, 19, 0, tzinfo=BJ_TZ)) == "20261012"
     # Weekend Saturday 22:00 -> Friday 2026-10-09
     assert resolve_default_target_date(open_days, datetime(2026, 10, 10, 22, 0, tzinfo=BJ_TZ)) == "20261009"
 

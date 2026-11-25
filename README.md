@@ -77,8 +77,8 @@ python scripts/export_public.py --mode authorized_real
 2. 在仓库 `Settings -> Secrets and variables -> Actions` 中添加 Secret：`TUSHARE_TOKEN`；可选在 `Variables` 中配置 `A15_PUBLISH_MODE`（未获公开展示授权前保持 `compliance_notice`）。
 3. 在仓库 `Settings -> Pages` 中将 `Source` 设为 **GitHub Actions**。
 4. 工作流 `.github/workflows/daily-update.yml` 已配置：
-   - 北京时间交易日 **20:00**（`0 12 * * 1-5` UTC）自动采集并更新当日数据；
-   - 北京时间交易日 **20:40**（`40 12 * * 1-5` UTC）自动复查补齐（若 20:00 尚有延迟则自动补全，已完整则复用缓存快速完成）；
+   - 北京时间交易日 **19:03**（`3 11 * * 1-5` UTC）自动采集并更新当日数据；
+   - 北京时间交易日 **19:37 / 20:37**（`37 11` / `37 12` UTC）自动复查补齐（若 19:00 尚有延迟则断点补全，已完整则复用缓存约 40 秒完成）；
    - 支持在 Actions 页面手动触发 `workflow_dispatch` 指定日期回补；
    - 使用 `concurrency` 互斥锁防止并发冲突，自动验证云端主机对 BaoStock 的连通性，并扫描 `web/` 确保无 Token 泄露后自动部署至固定 HTTPS 地址 `https://<username>.github.io/<repo>/`。
 

@@ -46,9 +46,10 @@ def verify_url(url: str, expected_normal: int, expected_free: int, search_term: 
         delivery_badge = page.locator("#deliveryBadge").inner_text()
         target_date = page.locator("#metaTargetDate").inner_text()
 
-        # Verify normal caliber button & board coverage section are removed
+        # Verify normal caliber button, board coverage section, and compliance section are removed
         assert page.locator("#btnCaliberNormal").count() == 0, f"[{label}] btnCaliberNormal should be removed"
         assert page.locator("#boardCoverageGrid").count() == 0, f"[{label}] boardCoverageGrid should be removed"
+        assert page.locator("#complianceSection").count() == 0, f"[{label}] complianceSection should be removed"
 
         # Verify direct free-float list count
         free_kpi = int(page.locator("#kpiSelectedCount").inner_text().replace(",", ""))

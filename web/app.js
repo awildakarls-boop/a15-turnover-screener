@@ -42,10 +42,6 @@
     rawUnverifiedSection: document.getElementById("rawUnverifiedSection"),
     rawRowCount: document.getElementById("rawRowCount"),
     rawTbody: document.getElementById("rawTbody"),
-    complianceModeTag: document.getElementById("complianceModeTag"),
-    licenseReasonText: document.getElementById("licenseReasonText"),
-    licenseSourcesList: document.getElementById("licenseSourcesList"),
-    vendorTbody: document.getElementById("vendorTbody"),
   };
 
   function esc(v) {
@@ -145,18 +141,12 @@
     if (mode === "authorized_real") {
       els.deliveryBadge.textContent = "真实盘后榜单 · 个人学习参考";
       els.deliveryBadge.className = "badge badge-ok";
-      els.complianceModeTag.textContent = "真实数据 · 仅限个人学习参考";
-      els.complianceModeTag.className = "badge badge-ok";
     } else if (mode === "private_verified_real") {
       els.deliveryBadge.textContent = "私人环境真实验算模式";
       els.deliveryBadge.className = "badge badge-info";
-      els.complianceModeTag.textContent = "仅限私人本地核验";
-      els.complianceModeTag.className = "badge badge-info";
     } else {
-      els.deliveryBadge.textContent = "真实榜单待授权（合规演示）";
+      els.deliveryBadge.textContent = "演示模式";
       els.deliveryBadge.className = "badge badge-warn";
-      els.complianceModeTag.textContent = "公网合规模式 · 真实榜单待授权";
-      els.complianceModeTag.className = "badge badge-warn";
     }
 
     // Banner notifications
@@ -465,39 +455,6 @@
     }
   }
 
-  function renderCompliance() {
-    const audit = (state.manifest && state.manifest.license_audit) || null;
-    if (!audit) return;
-    els.licenseReasonText.textContent = audit.reason || "";
-
-    els.licenseSourcesList.innerHTML = (audit.sources_checked || [])
-      .map(
-        (item) => `
-        <div class="license-src-item">
-          <strong>${esc(item.source)}</strong>：
-          私人验算 ${item.allow_private_verify ? "✅ 允许" : "❌ 禁止"} ｜
-          公网匿名展示 ${item.allow_public_anonymous ? "✅ 允许" : "❌ 不可公开"}<br/>
-          <span class="val-muted">${esc(item.basis)}</span>
-        </div>
-      `
-      )
-      .join("");
-
-    els.vendorTbody.innerHTML = (audit.alternative_vendors || [])
-      .map(
-        (v) => `
-        <tr>
-          <td><strong>${esc(v.name)}</strong></td>
-          <td>${esc(v.coverage)}</td>
-          <td>${esc(v.public_display_note)}</td>
-          <td>${esc(v.pricing)}</td>
-          <td><a href="${esc(v.entry_url)}" target="_blank" rel="noopener noreferrer">官方申请/说明</a></td>
-        </tr>
-      `
-      )
-      .join("");
-  }
-
   async function loadDate(dateDash) {
     state.selectedDate = dateDash;
     state.expandedCodes.clear();
@@ -568,7 +525,6 @@
     try {
       const manifest = await fetchJson("./data/manifest.json");
       state.manifest = manifest;
-      renderCompliance();
 
       const dates = manifest.available_dates && manifest.available_dates.length
         ? manifest.available_dates

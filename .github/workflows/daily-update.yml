@@ -2,13 +2,13 @@ name: A15 Daily Update & Pages Deploy
 
 on:
   schedule:
-    # Avoid top-of-hour 12:00 UTC global GitHub Actions congestion!
-    # Asia/Shanghai 20:03 (Mon-Fri) -> 12:03 UTC: primary same-day collection
-    - cron: "3 12 * * 1-5"
-    # Asia/Shanghai 20:37 (Mon-Fri) -> 12:37 UTC: retry/backfill safety net
+    # Avoid top-of-hour 11:00 UTC global GitHub Actions congestion!
+    # Asia/Shanghai 19:03 (Mon-Fri) -> 11:03 UTC: primary same-day collection
+    - cron: "3 11 * * 1-5"
+    # Asia/Shanghai 19:37 (Mon-Fri) -> 11:37 UTC: retry/backfill safety net
+    - cron: "37 11 * * 1-5"
+    # Asia/Shanghai 20:37 (Mon-Fri) -> 12:37 UTC: final safety net if BaoStock lagged at 19:00
     - cron: "37 12 * * 1-5"
-    # Asia/Shanghai 21:17 (Mon-Fri) -> 13:17 UTC: final evening safety net (40s no-op if already complete)
-    - cron: "17 13 * * 1-5"
   workflow_dispatch:
     inputs:
       trade_date:
