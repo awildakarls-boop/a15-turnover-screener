@@ -2,10 +2,13 @@ name: A15 Daily Update & Pages Deploy
 
 on:
   schedule:
-    # Asia/Shanghai 20:00 (Mon-Fri) -> 12:00 UTC (Mon-Fri): collect & publish same-day data
-    - cron: "0 12 * * 1-5"
-    # Asia/Shanghai 20:40 (Mon-Fri) -> 12:40 UTC (Mon-Fri): safety check & backfill if minute feed lagged at 20:00
-    - cron: "40 12 * * 1-5"
+    # Avoid top-of-hour 12:00 UTC global GitHub Actions congestion!
+    # Asia/Shanghai 20:03 (Mon-Fri) -> 12:03 UTC: primary same-day collection
+    - cron: "3 12 * * 1-5"
+    # Asia/Shanghai 20:37 (Mon-Fri) -> 12:37 UTC: retry/backfill safety net
+    - cron: "37 12 * * 1-5"
+    # Asia/Shanghai 21:17 (Mon-Fri) -> 13:17 UTC: final evening safety net (40s no-op if already complete)
+    - cron: "17 13 * * 1-5"
   workflow_dispatch:
     inputs:
       trade_date:

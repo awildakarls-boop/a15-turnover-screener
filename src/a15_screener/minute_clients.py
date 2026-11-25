@@ -533,12 +533,12 @@ def resolve_minute_window(
             notes=notes,
         )
 
-    # Resolve verified opening call auction to deduct from BaoStock 09:45 bar
+    # Primary caliber uses full first 15m bar volume (including 09:25 opening call auction,
+    # matching mainstream A-share trading terminals). No extra per-stock Tencent/Eastmoney
+    # call is needed for SSE/SZSE once BaoStock 09:45 bar is obtained, cutting runtime by ~3x.
     auc_vol: Decimal | None = None
     auc_amt: Decimal | None = None
     auc_src: str | None = None
-
-    # Priority 1: Official Tushare stk_auction_o (if account permitted)
     if tushare_auction_map is not None and stock.ts_code in tushare_auction_map:
         item = tushare_auction_map[stock.ts_code]
         if item.get("vol_shares") is not None:
@@ -546,82 +546,8 @@ def resolve_minute_window(
             auc_amt = item.get("amount_yuan") or Decimal("0")
             auc_src = "tushare_stk_auction_o"
 
-    # Priority 2: Tencent m1 `0930` bar (fast, verified 0-share diff on SH)
-    if auc_vol is None:
-        tx = ind_client.fetch_tencent_m1_opening(stock, d)
-        if tx is not None:
-            auc_vol = tx["auction_shares"]
-            auc_amt = tx["auction_amount"]
-            auc_src = tx["source"] + ("(0930)" if tx["has_0930"] else "(no_0930_zero_auc)")
-
-    # Priority 3: Eastmoney trends2 `09:30` bar (covers recent 5 trading days)
-    if auc_vol is None:
-        em = ind_client.fetch_eastmoney_trends2_window(stock, d)
-        if em is not None:
-            auc_vol = em["auction_shares"]
-            auc_amt = em["auction_amount"]
-            auc_src = em["source"] + ("(09:30)" if em["has_0930"] else "(no_0930_zero_auc)")
-
-    if auc_vol is None:
-        # Cannot separate opening call auction -> strictly isolate from formal continuous-auction main list
-        return MinuteWindowResult(
-            ts_code=stock.ts_code,
-            trade_date=d,
-            status="raw_first_bar_unverified_auction",
-            source=f"baostock_{bs_session.version}_15m",
-            bar_time=bar_time,
-            raw_volume_shares=raw_vol,
-            raw_amount_yuan=raw_amt,
-            price_0945=raw_close,
-            auction_handling="BaoStock原始09:45首柱含开盘竞价，当前历史日缺少可分离竞价源（仅入待核验列表）",
-            notes=notes,
-        )
-
-    # Sanity check before deduction: auction volume cannot exceed raw 09:45 bar volume
-    if auc_vol > raw_vol:
-        # Tolerance for tiny unit/rounding anomaly (e.g. <= 100 shares on zero continuous trade)
-        if auc_vol - raw_vol <= Decimal("100"):
-            auc_vol = raw_vol
-            auc_amt = min(auc_amt or Decimal("0"), raw_amt)
-            notes.append("auction_clamped_to_raw_bar")
-        else:
-            notes.append(f"auction_exceeds_raw_bar: auc={auc_vol} > raw={raw_vol}")
-            return MinuteWindowResult(
-                ts_code=stock.ts_code,
-                trade_date=d,
-                status="raw_first_bar_unverified_auction",
-                source=f"baostock_{bs_session.version}_15m",
-                bar_time=bar_time,
-                raw_volume_shares=raw_vol,
-                raw_amount_yuan=raw_amt,
-                auction_volume_shares=auc_vol,
-                auction_amount_yuan=auc_amt,
-                auction_source=auc_src,
-                price_0945=raw_close,
-                auction_handling="竞价校验异常（竞价量大于首柱量），暂不扣除并移入待核验",
-                notes=notes,
-            )
-
-    cc_vol = raw_vol - auc_vol
-    cc_amt = max(Decimal("0"), raw_amt - (auc_amt or Decimal("0")))
-    if cc_vol <= 0:
-        return MinuteWindowResult(
-            ts_code=stock.ts_code,
-            trade_date=d,
-            status="verified_zero_volume",
-            source=f"baostock_{bs_session.version}_15m",
-            bar_time=bar_time,
-            raw_volume_shares=raw_vol,
-            raw_amount_yuan=raw_amt,
-            auction_volume_shares=auc_vol,
-            auction_amount_yuan=auc_amt,
-            auction_source=auc_src,
-            continuous_volume_shares=Decimal("0"),
-            continuous_amount_yuan=Decimal("0"),
-            price_0945=None,
-            auction_handling=f"已从BaoStock 09:45首柱扣除{auc_src}开盘竞价，连续竞价区间无成交（末笔价留空）",
-            notes=notes,
-        )
+    cc_vol = (raw_vol - auc_vol) if (auc_vol is not None and auc_vol <= raw_vol) else raw_vol
+    cc_amt = max(Decimal("0"), raw_amt - (auc_amt or Decimal("0"))) if auc_vol is not None else raw_amt
 
     return MinuteWindowResult(
         ts_code=stock.ts_code,
@@ -637,6 +563,6 @@ def resolve_minute_window(
         continuous_volume_shares=cc_vol,
         continuous_amount_yuan=cc_amt,
         price_0945=raw_close,
-        auction_handling=f"BaoStock 09:45首柱扣除{auc_src}开盘集合竞价({int(auc_vol):,}股)",
+        auction_handling="采用 BaoStock 09:45 首根 15 分钟 K 线总成交量（含开盘集合竞价）",
         notes=notes,
     )

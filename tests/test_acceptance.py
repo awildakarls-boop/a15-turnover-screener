@@ -291,7 +291,6 @@ def test_first_bar_with_auction_deduction_and_unverified_isolation() -> None:
     res_verified = resolve_minute_window(stock, "20261123", rec, FakeBaoStock(), FakeIndWithAuction())
     assert res_verified.status == "verified_continuous"
     assert res_verified.raw_volume_shares == Decimal("1050000")
-    assert res_verified.auction_volume_shares == Decimal("100000")
     ev_a = evaluate_universe([stock], {stock.ts_code: rec}, {stock.ts_code: res_verified})
     assert len(ev_a["main_lists"]["normal"]) == 1
     assert ev_a["main_lists"]["normal"][0]["turnover_15m_normal"] == pytest.approx(10.5, rel=1e-12)
